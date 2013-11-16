@@ -1,6 +1,3 @@
-%addpath('/home/dpickem/Dropbox/gatech/7. Semester/CS 7649/assignments/2/RIP-2013-P2/visualization/starter-code');
-%addpath('/home/dpickem/Dropbox/gatech/7. Semester/CS 7649/assignments/2/RIP-2013-P2/visualization/starter-code/kinematics');
-%addpath('/home/dpickem/Dropbox/gatech/7. Semester/CS 7649/assignments/2/RIP-2013-P2/visualization/starter-code/visualization');
 addpath('./');
 addpath('./kinematics');
 addpath('./visualization');
