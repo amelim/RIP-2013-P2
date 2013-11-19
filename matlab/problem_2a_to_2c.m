@@ -1,12 +1,15 @@
+clear;
+clc;
+
 addpath('./');
 addpath('./kinematics');
 addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
 rrt_variant     = 'baseline'; 
-rrt_variant     = 'goal_directed';
-rrt_variant     = 'goal_connect';
-numberOfSamples = 100;
+% rrt_variant     = 'goal_directed';
+% rrt_variant     = 'goal_connect';
+numberOfSamples = 300;
 stepSize        = 0.05;
 goalProbability = 0.02;
 errorThreshold  = 0.1;
@@ -16,6 +19,7 @@ ql = [2 2 1];
 if(strcmp(rrt_variant, 'baseline'))
     % Set initial configuration
     q = [0; 0; 0];
+    q_init = q;
     
     % Load scene data
     file = 'file1.scene';
@@ -107,9 +111,11 @@ while(length(G) < numberOfSamples)
         end
     end
     
-    if(norm(q_new - q_goal) < errorThreshold)
-        disp(['Goal found']);
-        break;
+    if(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
+        if(norm(q_new - q_goal) < errorThreshold)
+            disp(['Goal found']);
+            break;
+        end
     end
 end
 
@@ -149,10 +155,13 @@ xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
 ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
 zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
 
-%% Reconstruct path and animate it
+%% Reconstruct path and animate it and/or create video
+vidoe = false;
+
 if(strcmp(rrt_variant, 'baseline'))
     % Pick random node on tree and move arm back to start position
-    q_goal = G(1:3, randi(length(G)));    
+    %q_goal = G(1:3, randi(length(G)));    
+    q_goal = G(1:3, end); 
 elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
     % Pick last node added to tree, i.e. goal configuration
     q_goal = G(1:3, end);
@@ -169,7 +178,16 @@ while(i > 1)
 end
 
 if(strcmp(rrt_variant, 'baseline'))
-    drawScene(file, qSum', ql);
+    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
 elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
-    drawScene(file, qSum', ql, fk(q_init, ql), fk(q_goal, ql));
+    drawScene(file, qSum', ql, 'test', fk(q_init, ql), fk(q_goal, ql));
 end
+
+%% Prepare tree for video - call createVideo(tree, 'filename', step)
+tree = zeros(length(E), 6);
+
+for i = 1:1:length(E)
+    tree(i, :) = [G(1:3, i)', G(1:3, E(i))'];
+end
+
+createVideo(tree, 'filename', 2)

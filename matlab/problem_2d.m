@@ -4,7 +4,7 @@ addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
 rrt_variant         = 'bidirectional'; 
-numberOfSamples     = 300;
+numberOfSamples     = 500;
 stepSize            = 0.05;
 connectProbability  = 0.2;
 errorThreshold      = 0.1;
@@ -131,12 +131,12 @@ for i = 1:1:length(qSum1)
     qSum(1:3, end + 1) = qSum1(1:3, i);
 end
 
-drawScene(file, qSum', ql, fk(q_init, ql), fk(q_goal, ql));
+drawScene(file, qSum', ql, 'test', fk(q_init, ql), fk(q_goal, ql));
 
 %% Check if appending was good
 for i = 1:1:length(qSum)-1
     error = norm(qSum(1:3, i) - qSum(1:3, i+1));
-    if(error > errorThreshold)
+    if(error > 2*errorThreshold)
         disp(['Error at index: ', num2str(i), ', with error: ', ...
             num2str(error)]);
     end
@@ -180,3 +180,17 @@ end
 xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
 ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
 zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
+
+%% Prepare trees for video - call createVideo(tree1, 'filename', step, tree2)
+tree1 = zeros(length(E1), 6);
+tree2 = zeros(length(E2), 6);
+
+for i = 1:1:length(E1)
+    tree1(i, :) = [G1(1:3, i)', G1(1:3, E1(i))'];
+end
+
+for i = 1:1:length(E2)
+    tree2(i, :) = [G2(1:3, i)', G2(1:3, E2(i))'];
+end
+
+createVideo(tree, 'filename', 5)
