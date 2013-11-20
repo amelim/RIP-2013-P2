@@ -7,7 +7,7 @@ addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
 rrt_variant     = 'baseline'; 
-% rrt_variant     = 'goal_directed';
+rrt_variant     = 'goal_directed';
 % rrt_variant     = 'goal_connect';
 numberOfSamples = 300;
 stepSize        = 0.05;
@@ -180,7 +180,7 @@ end
 if(strcmp(rrt_variant, 'baseline'))
     drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
 elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
-    drawScene(file, qSum', ql, 'test', fk(q_init, ql), fk(q_goal, ql));
+    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
 end
 
 %% Prepare tree for video - call createVideo(tree, 'filename', step)

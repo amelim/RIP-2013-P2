@@ -193,4 +193,4 @@ for i = 1:1:length(E2)
     tree2(i, :) = [G2(1:3, i)', G2(1:3, E2(i))'];
 end
 
-createVideo(tree, 'filename', 5)
+createVideo(tree1, 'filename', 2, tree2)
