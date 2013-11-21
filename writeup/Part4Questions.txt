@@ -1,0 +1,13 @@
+a) 
+For collision checking, a function would be required that would allow possible expansion nodes to be rejected if there is a collision between the links and other objects in workspace. This would require knowing the current joint positions in workspace and using the Jacobian to detect what the next orientation will be given a change in joint velocity. If a collision is detected, that node should not be considered in the RRT; however, if there is not a collision the node can be added.
+
+For joint limits, there should be a constraint placed on the possible positions that each link can have with respect to each other. This is easiest done in configuration space vs. workspace. By taking taking the configuration space and choosing what are the maximum and minimum angles between limbs, it should be possible to create functions (either continuous or piecewise) that restrict the possible movements of certain joints given the current orientation of a specific one. this can then be applied into the RRT in configuration space directly using a similar method to the collision node rejection function.
+
+	
+
+
+b)
+
+
+c)
+In the task constrained problem, the only limitation for the joints is that the cup is maintained in an upright position. Unfortunately, this constraint does not say anything more about how the links are positioned with respect to each other as long as this objective is maintained. It may that the final joint orientation is such that the cup's opening is blocked or that the cup is enclosed by the links, which would make access to it difficult or impossible. This can be fixed by using a joint limitation function similar to that in Part a). It may also be possible to create pseudo-objects in the environment (i.e  modify the robot's perception of the cup such that the opening is always given a berth of a specific distance or radius).

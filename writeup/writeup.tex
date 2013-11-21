@@ -103,12 +103,39 @@ and answers in the reports are the primary component of your grade!
 \problem{1}{Jacobian Control}
 \label{sec:problem_1}
 % ++++++++++++++++++++++++++++++++++++++++++++++++
+Implementing Jacobian control using forward and inverse kinematics of a 3 DoF robot arm was relatively straightforward. At each iteration the algorithm computes the following quantities:
 
+\begin{itemize}
+ \item Compute the inverse of the current Jacobian matrix.
+ \item Compute the joint velocities using the inverse Jacobian matrix.
+ \item Update the joint positions using the joint velocities and the previously known joint positions.
+ \item Recompute the Jacobian matrix using the new joint positions.
+ \item Compute the new end effector position and the position error between end effector and target position of end effector.
+ \item Compute target directed end effector velocities.
+\end{itemize}
+
+We noticed one caveats of this approach during implementation. On one hand, the initial and target configuration are given in terms of configuration space. This is not a problem for the target configuration, but the robot has to be initialized with joint angles. The reason for that is because the Jacobian control approach requires the computation of the Jacobian matrix, which requires the joint angles as an initialization parameter. To compute the joint angles corresponding to the initial configuration of $[2.6, 1.3, 1.0]$, we initialized the robot with random joint angles and used our controller to direct the robot to this position.
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++
 \problem{2}{RRTs}
 \label{sec:problem_2}
 % ++++++++++++++++++++++++++++++++++++++++++++++++
+The implementations of the following four RRT variants used a few parameters including the \textit{number of samples}, the \textit{step size}, the \textit{goal probability}, and an \textit{error threshold}. We will elaborate on their influence on the algorithms' behavior in the following discussion.
+
+\begin{itemize}
+ \item \textbf{Baseline:} This version of RRTs used only the number of samples and the step size, where the step size essentially dictates how fast and dense the configuration space is covered. A small step size results in a relatively dense tree that covers a smaller volume whereas a large step size results in a sparse tree that covers a larger volume. 
+\end{itemize}
+
+The following implementations were applied to a different environment with more obstacles. Therefore, the conclusions and observations made should stand separately from the base case. 
+
+\begin{itemize}
+ \item \textbf{Goal-directed:} This variant of RRTs moves towards the goal with a certain probability $p$ and towards a random configuration otherwise. Therefore, the parameters that influence this algorithm are the \textit{goal probability}, the \textit{error threshold}, and very importantly the \textit{step size}. We noticed that if the step size is set to too large values, the robot arm tends to ``jump over'' obstacles without triggering the collision detection. Therefore, it is important to set the step size (which essentially represents a $dt$ for updating the joint angles $q = q + \dot{q} dt$) to small values, i.e. such that $\mathrm{max}\{ \dot{q} \} \; dt \; < \; \mathrm{smallest} \; \mathrm{obstacle}$. Comparing those two quantities requires either applying forward kinematics to the joint velocities to compute the end effector velocities or computing the obstacle dimensions in configuration space. In our algorithm we used forward kinematics to estimate the largest step size. In addition, we used the step size to estimate the error threshold, which we set such that the arm could not ``jump over'' the target configuration. \newline
+ The probability of moving towards the goal was selected to be very small, around $p = 0.01$, so in only one percent of the cases does the tree expand towards the goal. Depending on the complexity of the environment and the number of obstacles this resembled the following \textit{connect} RRT version. 
+ 
+ \item \textbf{Connect:} This version of RRTs attempts to expand towards the goal for as many consecutive steps as possible (i.e. until a collision is detected). The behavior of this algorithm was very similar to the goal-directed version and the reason is the following. In an environment with many obstacles (as was the case in \textit{file2.scene}) a randomly sampled node is likely to be either in an obstacle or cause the arm to collide with an obstacle with high probability. On the other hand an expansion towards the goal, if possible, enables many more subsequent expansions towards the goal. Therefore, once a goal expansion was successful, subsequent goal expansions are very likely even though the goal probability is low. 
+ 
+ \item \textbf{Bidirectional:} This variant of RRTs grows two trees, one rooted at the initial and one at the target configuration. While this has the potential to speed up computation of a path we observed that it can take as long to connect these two trees as it takes to grow one tree from initial to target configuration. In addition, while the goal-directed and connect versions of RRT generally produce a smooth approach of the target configuration, the bidirectional version approached the target in a rather jerky fashion. 
+\end{itemize}
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++
 \problem{3}{Task Constraints}
@@ -143,7 +170,10 @@ This section summarizes the contribution of each team member.
 
   \item Daniel Pickem
     \begin{itemize}
-     \item ???
+     \item Implemented Jacobian control approach using inverse and forward kinematics for problem 1.
+     \item Implemented the four RRT versions required for problem 2.
+     \item Created all videos and animations for problem 1 and 2 as well as figures.
+     \item Modified and improved visualization code provided by instructor to suit our needs better. 
     \end{itemize}
 \end{enumerate}
 
