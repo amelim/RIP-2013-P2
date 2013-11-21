@@ -7,15 +7,13 @@ addpath('./kinematics');
 addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
-% rrt_variant     = 'baseline'; 
 rrt_variant     = 'goal_directed';
-% rrt_variant     = 'goal_connect';
-numberOfSamples = 500;
-stepSize        = 0.01;
-goalProbability = 0.02;
-errorThreshold  = 0.1;
-epsilon = 0.001;
-steps = 800;
+numberOfSamples = 2000;
+stepSize        = 0.02;
+goalProbability = 0.1;
+errorThreshold  = 0.3;
+epsilon = 0.005;
+steps = 300;
 
 % Set initial configuration q_init (in joint space)
 ql = [2 2 1];
@@ -26,7 +24,7 @@ q_init  = q;
 q_goal  = [1.5707; 1.2708; 0];
 
 % Load scene data
-file = 'file2.scene';
+%file = 'file2.scene';
 %obst = load(file);     % data in format [tx, ty, theta, dim_x, dim_y]
 
 % Initialize tree, store as array of size 3 x n
@@ -87,12 +85,12 @@ while(size(G,2) < numberOfSamples)
             vy = dy / steps;
             w  = 0;
             xDot    = [vx; vy; w];
-            xDot = stepSize * xDot / norm(xDot);
+            xDot = 0.1 * stepSize * xDot / norm(xDot);
             
             % If the motion does not get us closer to the constraint than
             % the previous step, break
             if(dy >= dy_prev)
-                disp('Break because dy > dy_prev');
+%                 disp('Break because dy > dy_prev');
                 break;
             else
                 % else update the previous error to the current error
@@ -102,7 +100,7 @@ while(size(G,2) < numberOfSamples)
             % If the next step is closer than epsilon to the constraint,
             % break
            	if(dy < epsilon)
-                disp('Break because dy < epsilon');
+%                 disp('Break because dy < epsilon');
                 break
             end        
             
@@ -130,72 +128,70 @@ while(size(G,2) < numberOfSamples)
                 disp('Break because norm(q_step - q_new) > 0.5');
                 break;
             end
-
         end
     end
     
-    % Append q_new to tree
-    collision = 0;
-    if(~collision)
-        G = [G, q_new];
-        
-        x_added = fk(q_new, ql)'
-        
-        E(length(E) + 1) = index;       % store index of q_near as parent
-        
-        if(~mod(length(G), 10))
-            disp(['Added node ', num2str(length(G)), ' to tree']);
-        end
+    % Append q_new to tree --> no collision checks needed, since we use an
+    % open environment without obstacles
+    G = [G, q_new];
+    E(length(E) + 1) = index;       % store index of q_near as parent
+    
+    if(~mod(length(G), 50))
+        disp(['Added node ', num2str(length(G)), ' to tree']);
     end
     
-    if(norm(q_step - q_goal) < errorThreshold)
+    % Use a workspace error threshold
+    if(norm(fk(q_step, ql) - fk(q_goal, ql)) < errorThreshold)
         disp(['Goal found']);
         break;
     end
     
-    % Plot data in 3D space
-    plot3(G(1,:), G(2,:), G(3,:), 'bx');
-    grid on; hold on;
-    
-    % Mark initial configuration
-    plot3(G(1,1), G(2,1), G(3,1), 'ro',...
-        'LineWidth',2,...
-        'MarkerEdgeColor','b',...
-        'MarkerFaceColor','r',...
-        'MarkerSize',12)
-    
-    % Mark goal configuration in case of goal directed RRTs
-    if(strcmp(rrt_variant, 'goal_directed'))
-        plot3(q_goal(1), q_goal(2), q_goal(3), 'go',...
-            'LineWidth',2,...
-            'MarkerEdgeColor','b',...
-            'MarkerFaceColor','g',...
-            'MarkerSize',12)
-    end
-    
-    % Draw random sampled config and taken step
-    h_old = plot3(q_rand(1), q_rand(2), q_rand(3), 'bo',...
-        'LineWidth',2,...
-        'MarkerEdgeColor','b',...
-        'MarkerFaceColor','b',...
-        'MarkerSize',12); hold on;
-    
-    % Plot edges of tree
-    for i = 1:1:length(E)
-        Xedge = [G(1, i), G(1, E(i))];
-        Yedge = [G(2, i), G(2, E(i))];
-        Zedge = [G(3, i), G(3, E(i))];
-        line(Xedge, Yedge, Zedge);
-    end
-    
-    % Add labels to axes
-    xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
-    ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
-    zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
-    axis([-pi pi -pi pi -pi pi]);
-    pause(0.1);
-    
-    delete(h_old);
+%     % Plot data in 3D space
+%     plot3(G(1,:), G(2,:), G(3,:), 'bx');
+%     grid on; hold on;
+%     
+%     % Mark initial configuration
+%     plot3(G(1,1), G(2,1), G(3,1), 'ro',...
+%         'LineWidth',2,...
+%         'MarkerEdgeColor','b',...
+%         'MarkerFaceColor','r',...
+%         'MarkerSize',12)
+%     
+%     % Mark goal configuration in case of goal directed RRTs
+%     if(strcmp(rrt_variant, 'goal_directed'))
+%         plot3(q_goal(1), q_goal(2), q_goal(3), 'go',...
+%             'LineWidth',2,...
+%             'MarkerEdgeColor','b',...
+%             'MarkerFaceColor','g',...
+%             'MarkerSize',12)
+%     end
+%     
+%     % Draw random sampled config and taken step
+%     h_old = plot3(q_rand(1), q_rand(2), q_rand(3), 'bo',...
+%         'LineWidth',2,...
+%         'MarkerEdgeColor','b',...
+%         'MarkerFaceColor','b',...
+%         'MarkerSize',12); hold on;
+%     
+%     % Plot edges of tree
+%     Xedge = [];
+%     Yedge = [];
+%     Zedge = [];
+%     for i = 1:1:length(E)
+%         Xedge = [G(1, i), G(1, E(i))];
+%         Yedge = [G(2, i), G(2, E(i))];
+%         Zedge = [G(3, i), G(3, E(i))];
+%         line(Xedge, Yedge, Zedge);
+%     end
+%     
+%     % Add labels to axes
+%     xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
+%     ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
+%     zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
+%     axis([-pi pi -pi pi -pi pi]);
+%     pause(0.01);
+%     
+%     delete(h_old);
 end
 
 % End timing
@@ -223,12 +219,12 @@ if(strcmp(rrt_variant, 'goal_directed'))
 end
 
 % Plot edges of tree
-for i = 1:1:length(E)
-    X = [G(1, i), G(1, E(i))];
-    Y = [G(2, i), G(2, E(i))];
-    Z = [G(3, i), G(3, E(i))];
-    line(X, Y, Z);
-end
+% for i = 1:1:length(E)
+%     X = [G(1, i), G(1, E(i))];
+%     Y = [G(2, i), G(2, E(i))];
+%     Z = [G(3, i), G(3, E(i))];
+%     line(X, Y, Z);
+% end
 
 % Add labels to axes
 xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
@@ -237,6 +233,7 @@ zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
     
 %% Reconstruct path and animate it and/or create video
 vidoe = false;
+file = ''
 
 if(strcmp(rrt_variant, 'baseline'))
     % Pick random node on tree and move arm back to start position
