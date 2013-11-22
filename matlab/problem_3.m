@@ -8,12 +8,12 @@ addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
 rrt_variant     = 'goal_directed';
-numberOfSamples = 2000;
-stepSize        = 0.02;
+numberOfSamples = 8000;
+stepSize        = 0.05;
 goalProbability = 0.1;
 errorThreshold  = 0.3;
-epsilon = 0.005;
-steps = 300;
+epsilon = 0.0001;
+steps = 3000;
 
 % Set initial configuration q_init (in joint space)
 ql = [2 2 1];
@@ -49,91 +49,61 @@ while(size(G,2) < numberOfSamples)
 
     % Find nearest point in already grown tree
     index =  getNearest(G', q_rand);
-    q_near = G(:, index);   
+    q_near = G(:, index);
         
     % Move from q_near towards q_rand
     dq1 = q_rand(1) - q_near(1);
     dq2 = q_rand(2) - q_near(2);
     dq3 = q_rand(3) - q_near(3);
     
-    q_step = q_near + stepSize * [dq1; dq2; dq3];
+    dq = [dq1; dq2; dq3];
     
-    % Compute initial Jacobian matrix
-    J = armJacobian(q_step, ql);
+    q_step = q_near + stepSize * (dq/norm(dq));
     
     % Compute workspace position of the candidate
     x = fk(q_step, ql)';
     
     % Compute the error given the following constraint
-    dy      = norm(3 - x(2));
+    dy      = norm(2.8 - x(2));
     dy_prev = inf;
-
+    
     % If there is non-zero error, drive q_near closer to the constraint
-    if(dy > 0)
-        for i = 1:1:steps
-            % Recompute end effector position
-            x = fk(q_step, ql)';            
-            
-            % Recompute current error
-            dx      = 0;
-            dy      = norm(3 - x(2));
-            dtheta  = 0;
-            dError  = [dx; dy; dtheta];
-            
-            % Recompute velocities
-            vx = 0;
-            vy = dy / steps;
-            w  = 0;
-            xDot    = [vx; vy; w];
-            xDot = 0.1 * stepSize * xDot / norm(xDot);
-            
-            % If the motion does not get us closer to the constraint than
-            % the previous step, break
-            if(dy >= dy_prev)
-%                 disp('Break because dy > dy_prev');
-                break;
-            else
-                % else update the previous error to the current error
-                dy_prev = dy;
-            end
-            
-            % If the next step is closer than epsilon to the constraint,
-            % break
-           	if(dy < epsilon)
-%                 disp('Break because dy < epsilon');
-                break
-            end        
-            
-            q_new = q_step;
-            X = [X, x];
+    % Utilize forward retraction approach
+    q_new = q_step;
 
-            % Recompute Jacobian
-            J = armJacobian(q_step, ql);
-            
-            % Compute joint velocities based on linear end effector velocities
-            if(rank(J) < 3)
-                error('J is singular');
-            end
+    while(norm(dy) > epsilon)
+%       if(norm(q_step - q_new) > norm(q_new - q_near))
+% %         disp('break')
+%         q_step = q_new;
+%         break
+%       end
+      % Recompute end effector position
+      x = fk(q_step, ql)';
 
-            % Update joint velocities
-            qDot = inv(J) * xDot;
+      % Recompute current error
+      dx      = 0;
+      dy      = norm(2.8 - x(2));
+      dtheta  = 0;
+      dError  = [dx; dy; dtheta];
 
-            % Recompute joint angles with inverse Jacobian keeping in mind that
-            % xDot = J * qDot --> qDot = inv(J) * xDot
-            q_step = q_step + qDot;
-            
-            if(norm(q_step - q_new) > 0.5)
-                % Don't wanna get away to far from inital expanded state
-                % otherwise the Jacobian is not valid anymore.
-                disp('Break because norm(q_step - q_new) > 0.5');
-                break;
-            end
-        end
+      % Recompute velocities
+      vx = dx;
+      vy = dy;
+      w  = dtheta;
+      xDot    = [vx; vy; w];
+      xDot = stepSize * xDot;
+
+      % Recompute Jacobian
+      J = armJacobian(q_step, ql);
+      
+      % Update joint velocities
+      qDot = inv(J) * xDot;
+      q_step = q_step - qDot;    
     end
     
-    % Append q_new to tree --> no collision checks needed, since we use an
+    % Append q_step to tree --> no collision checks needed, since we use an
     % open environment without obstacles
-    G = [G, q_new];
+    G = [G, q_step];
     E(length(E) + 1) = index;       % store index of q_near as parent
     
     if(~mod(length(G), 50))
