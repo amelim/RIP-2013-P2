@@ -9,7 +9,7 @@ addpath('./visualization');
 % Set RRT parameters and select variant of RRT planner
 rrt_variant     = 'goal_directed';
 numberOfSamples = 8000;
-stepSize        = 0.05;
+stepSize        = 0.03;
 goalProbability = 0.1;
 errorThreshold  = 0.3;
 epsilon = 0.0001;
@@ -70,8 +70,13 @@ while(size(G,2) < numberOfSamples)
     % If there is non-zero error, drive q_near closer to the constraint
     % Utilize forward retraction approach
     q_new = q_step;
-
+    
+    i = 0;
     while(norm(dy) > epsilon)
+      i = i+1;
+      if i > 8000
+        break
+      end
 %       if(norm(q_step - q_new) > norm(q_new - q_near))
 % %         disp('break')
 %         q_step = q_new;
@@ -98,7 +103,7 @@ while(size(G,2) < numberOfSamples)
       
       % Update joint velocities
       qDot = inv(J) * xDot;
-      q_step = q_step - qDot;    
+      q_step = q_step - stepSize* qDot;    
     end
     
     % Append q_step to tree --> no collision checks needed, since we use an
