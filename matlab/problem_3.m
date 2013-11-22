@@ -37,6 +37,21 @@ X = [];
 % Start timing
 tic
 
+% Mark initial configuration
+plot3(G(1,1), G(2,1), G(3,1), 'ro', 'LineWidth',2, 'MarkerEdgeColor','b',...
+    'MarkerFaceColor','r','MarkerSize',12);
+grid on; hold on;
+
+% Mark goal configuration in case of goal directed RRTs
+plot3(q_goal(1), q_goal(2), q_goal(3), 'go', 'LineWidth',2, 'MarkerEdgeColor','b',...
+    'MarkerFaceColor','g', 'MarkerSize',12)
+
+% Add labels to axes
+xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
+ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
+zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
+axis([-pi pi -pi pi -pi pi]);
+
 while(size(G,2) < numberOfSamples)
     % Sample random configuration
 
@@ -44,7 +59,7 @@ while(size(G,2) < numberOfSamples)
     if(rand() < goalProbability)
         q_rand = q_goal;
     else
-        q_rand = [rand(); rand(); rand()] * 2 * pi- pi;
+        q_rand = [rand(); rand(); rand()] * 2 * pi - pi;
     end
 
     % Find nearest point in already grown tree
@@ -74,14 +89,18 @@ while(size(G,2) < numberOfSamples)
     i = 0;
     while(norm(dy) > epsilon)
       i = i+1;
-      if i > 8000
+      if i > steps
         break
       end
-%       if(norm(q_step - q_new) > norm(q_new - q_near))
-% %         disp('break')
-%         q_step = q_new;
-%         break
-%       end
+      
+      % Close to singularities, the pseudo-inverse may become
+      % unstable. To resolve this, we discard samples when the
+      % magnitude of adjustment exceeds the original displacement.
+      if(norm(q_step - q_new) > norm(q_new - q_near))
+        q_step = q_new;
+        break;
+      end
+      
       % Recompute end effector position
       x = fk(q_step, ql)';
 
@@ -108,10 +127,13 @@ while(size(G,2) < numberOfSamples)
     
     % Append q_step to tree --> no collision checks needed, since we use an
     % open environment without obstacles
-    G = [G, q_step];
-    E(length(E) + 1) = index;       % store index of q_near as parent
+    % Only add if dy is not too big
+    if(dy < 2*errorThreshold)
+        G = [G, q_step];
+        E(length(E) + 1) = index;       % store index of q_near as parent
+    end
     
-    if(~mod(length(G), 50))
+    if(~mod(length(G), 10))
         disp(['Added node ', num2str(length(G)), ' to tree']);
     end
     
@@ -121,56 +143,57 @@ while(size(G,2) < numberOfSamples)
         break;
     end
     
-%     % Plot data in 3D space
-%     plot3(G(1,:), G(2,:), G(3,:), 'bx');
-%     grid on; hold on;
-%     
-%     % Mark initial configuration
-%     plot3(G(1,1), G(2,1), G(3,1), 'ro',...
-%         'LineWidth',2,...
-%         'MarkerEdgeColor','b',...
-%         'MarkerFaceColor','r',...
-%         'MarkerSize',12)
-%     
-%     % Mark goal configuration in case of goal directed RRTs
-%     if(strcmp(rrt_variant, 'goal_directed'))
-%         plot3(q_goal(1), q_goal(2), q_goal(3), 'go',...
-%             'LineWidth',2,...
-%             'MarkerEdgeColor','b',...
-%             'MarkerFaceColor','g',...
-%             'MarkerSize',12)
-%     end
-%     
-%     % Draw random sampled config and taken step
+    % Plot new data in 3D space
+    plot3(G(1,end), G(2,end), G(3,end), 'bx');
+    
+    % Draw random sampled config and taken step
 %     h_old = plot3(q_rand(1), q_rand(2), q_rand(3), 'bo',...
 %         'LineWidth',2,...
 %         'MarkerEdgeColor','b',...
 %         'MarkerFaceColor','b',...
 %         'MarkerSize',12); hold on;
-%     
-%     % Plot edges of tree
-%     Xedge = [];
-%     Yedge = [];
-%     Zedge = [];
-%     for i = 1:1:length(E)
-%         Xedge = [G(1, i), G(1, E(i))];
-%         Yedge = [G(2, i), G(2, E(i))];
-%         Zedge = [G(3, i), G(3, E(i))];
-%         line(Xedge, Yedge, Zedge);
-%     end
-%     
-%     % Add labels to axes
-%     xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
-%     ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
-%     zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
-%     axis([-pi pi -pi pi -pi pi]);
-%     pause(0.01);
-%     
+    
+    % Plot edges of tree
+% 	Xedge = [G(1, end), G(1, E(end))];
+%     Yedge = [G(2, end), G(2, E(end))];
+%     Zedge = [G(3, end), G(3, E(end))];
+%     line(Xedge, Yedge, Zedge);
+    
+    pause(0.01);
 %     delete(h_old);
 end
 
 % End timing
 toc
+
+%% Reconstruct path and animate it and/or create video
+vidoe = false;
+file = '';
+
+if(strcmp(rrt_variant, 'baseline'))
+    % Pick random node on tree and move arm back to start position
+    %q_goal = G(1:3, randi(length(G)));    
+    q_last = G(1:3, end); 
+elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
+    % Pick last node added to tree, i.e. goal configuration
+    q_last = G(1:3, end);
+end
+
+qSum = q_last;
+
+% Reconstruct path taken
+i = length(G);
+
+while(i > 1)
+    i = E(i);
+    qSum = [qSum G(1:3, i)];
+end
+
+if(strcmp(rrt_variant, 'baseline'))
+    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
+elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
+    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
+end
 
 %% Draw tree
 % Plot data in 3D space
@@ -206,40 +229,11 @@ xlabel('Joint angle 1 q_1','fontsize',14,'fontweight','b')
 ylabel('Joint angle 2 q_2','fontsize',14,'fontweight','b')
 zlabel('Joint angle 3 q_3','fontsize',14,'fontweight','b')
     
-%% Reconstruct path and animate it and/or create video
-vidoe = false;
-file = ''
+%% Prepare tree for video - call createVideo(tree, 'filename', step)
+tree = zeros(length(E), 6);
 
-if(strcmp(rrt_variant, 'baseline'))
-    % Pick random node on tree and move arm back to start position
-    %q_goal = G(1:3, randi(length(G)));    
-    q_last = G(1:3, end); 
-elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
-    % Pick last node added to tree, i.e. goal configuration
-    q_last = G(1:3, end);
+for i = 1:1:length(E)
+    tree(i, :) = [G(1:3, i)', G(1:3, E(i))'];
 end
 
-qSum = q_last;
-
-% Reconstruct path taken
-i = length(G);
-
-while(i > 1)
-    i = E(i);
-    qSum = [qSum G(1:3, i)];
-end
-
-if(strcmp(rrt_variant, 'baseline'))
-    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
-elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
-    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
-end
-
-% %% Prepare tree for video - call createVideo(tree, 'filename', step)
-% tree = zeros(length(E), 6);
-% 
-% for i = 1:1:length(E)
-%     tree(i, :) = [G(1:3, i)', G(1:3, E(i))'];
-% end
-% 
-% createVideo(tree, 'filename', 2)
+createVideo(tree, 'filename', 2)
