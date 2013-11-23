@@ -79,7 +79,7 @@ while(size(G,2) < numberOfSamples)
     x = fk(q_step, ql)';
     
     % Compute the error given the following constraint
-    dy      = norm(2.8 - x(2));
+    dy      = norm(2.8868 - x(2));
     dy_prev = inf;
     
     % If there is non-zero error, drive q_near closer to the constraint
@@ -106,7 +106,7 @@ while(size(G,2) < numberOfSamples)
 
       % Recompute current error
       dx      = 0;
-      dy      = norm(2.8 - x(2));
+      dy      = norm(2.8868 - x(2));
       dtheta  = 0;
       dError  = [dx; dy; dtheta];
 
