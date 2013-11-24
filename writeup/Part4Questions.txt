@@ -3,11 +3,22 @@ For collision checking, a function would be required that would allow possible e
 
 For joint limits, there should be a constraint placed on the possible positions that each link can have with respect to each other. This is easiest done in configuration space vs. workspace. By taking taking the configuration space and choosing what are the maximum and minimum angles between limbs, it should be possible to create functions (either continuous or piecewise) that restrict the possible movements of certain joints given the current orientation of a specific one. this can then be applied into the RRT in configuration space directly using a similar method to the collision node rejection function.
 
-	
-
-
 b)
-
-
+Table
+{nodes,time}
+Connected
+{245,96.89},{458,159.27},{414,136.17},{368,152.52},{254,91.02},{379,131.69},{327,113.23},{409,157.03},{438,161.76}{292,112.89}
+Goal Directed
+{356,133.67},{423,176.02},{313,119.23},{361,149.39},{427,175.37},{398,134.81},{515,216.71},{329,114.72},{481,135.45},{282,79.63}
+Bidirectional
+{555,3.41},{1159,7.26},{1517,9.79},{794,5.01},{2998,19.18},{527,3.52},{1489,9.54},{1241,7.85},{2239,14.53},{891,6.00}
+Averages
+Connected : {358.4,131.25}
+Directed : {388.5,143.50}
+Bidirectional : {1341,8.67}
+In terms of computation time and node amount, the connected and directed tree were very similar. Both time were a lot slower than the bidirectional which is expected due to the extra logic used in determining which nodes to add to the graph. The bidirectional tree runs a lot faster than the goal-directed and connected trees because it does not use any biasing logic when it chooses the next node to add to the tree.
+The goal-directed tree would often get stuck hitting the obstacle in the lower right, compared to the connected algorithm which would mostly stay close to the large obstacle. Unfortunately, this resulted in the connected arm sometimes repeatedly hitting the large central obstacle due to the "move towards goal until collision" logic. 
+In the lower middle part of the path, the goal-directed would often times create a wider sweep than the connected version, in this region the connected region would usually take a much more direct path due to the lack of obstacles in that region.
+Compared to goal-directed and connected the bi-directional tree is more than double the number of nodes, which might be expected when joining two trees. Even though the two trees are most likely to meet up in the lower mid area of the environment, the rate at which they reach this point and their graph size and shape is less determined due to the lack of node choice biasing. This also affects the final path of the arm which is simply a joining of the path created between the random shared node on each tree. In this central area, there was a lot of jerky movements from the arm due to the jagged path that connected the shared node to the roots of both trees. All paths had instances of jerkiness in their paths which is common in RRT when path smoothing is not added to the algorithm but it was most often visible in the bidirectional tree.
 c)
 In the task constrained problem, the only limitation for the joints is that the cup is maintained in an upright position. Unfortunately, this constraint does not say anything more about how the links are positioned with respect to each other as long as this objective is maintained. It may that the final joint orientation is such that the cup's opening is blocked or that the cup is enclosed by the links, which would make access to it difficult or impossible. This can be fixed by using a joint limitation function similar to that in Part a). It may also be possible to create pseudo-objects in the environment (i.e  modify the robot's perception of the cup such that the opening is always given a berth of a specific distance or radius).
