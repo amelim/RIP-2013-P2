@@ -114,7 +114,7 @@ Implementing Jacobian control using forward and inverse kinematics of a 3 DoF ro
  \item Compute target directed end effector velocities.
 \end{itemize}
 
-We noticed one caveats of this approach during implementation. On one hand, the initial and target configuration are given in terms of configuration space. This is not a problem for the target configuration, but the robot has to be initialized with joint angles. The reason for that is because the Jacobian control approach requires the computation of the Jacobian matrix, which requires the joint angles as an initialization parameter. To compute the joint angles corresponding to the initial configuration of $[2.6, 1.3, 1.0]$, we initialized the robot with random joint angles and used our controller to direct the robot to this position.
+We noticed a caveat of this approach during implementation. The initial and target configuration are given in terms of configuration space. This is not a problem for the target configuration, but the robot has to be initialized with joint angles. The reason for that is because the Jacobian control approach requires the computation of the Jacobian matrix, which requires the joint angles as initialization parameters. To compute the joint angles corresponding to the initial configuration of $[2.6, 1.3, 1.0]$, we initialized the robot with random joint angles and used our controller to direct the robot to the initial position and read out the joint angles at that position.
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++
 \problem{2}{RRTs}
@@ -129,7 +129,8 @@ The implementations of the following four RRT variants used a few parameters inc
 The following implementations were applied to a different environment with more obstacles. Therefore, the conclusions and observations made should stand separately from the base case. 
 
 \begin{itemize}
- \item \textbf{Goal-directed:} This variant of RRTs moves towards the goal with a certain probability $p$ and towards a random configuration otherwise. Therefore, the parameters that influence this algorithm are the \textit{goal probability}, the \textit{error threshold}, and very importantly the \textit{step size}. We noticed that if the step size is set to too large values, the robot arm tends to ``jump over'' obstacles without triggering the collision detection. Therefore, it is important to set the step size (which essentially represents a $dt$ for updating the joint angles $q = q + \dot{q} dt$) to small values, i.e. such that $\mathrm{max}\{ \dot{q} \} \; dt \; < \; \mathrm{smallest} \; \mathrm{obstacle}$. Comparing those two quantities requires either applying forward kinematics to the joint velocities to compute the end effector velocities or computing the obstacle dimensions in configuration space. In our algorithm we used forward kinematics to estimate the largest step size. In addition, we used the step size to estimate the error threshold, which we set such that the arm could not ``jump over'' the target configuration. \newline
+ \item \textbf{Goal-directed:} This variant of RRTs moves towards the goal with a certain probability $p$ and towards a random configuration otherwise. Therefore, the parameters that influence this algorithm are the \textit{goal probability}, the \textit{error threshold}, and very importantly the \textit{step size}. We noticed that if the step size is set to too large values, the robot arm tends to ``jump over'' obstacles without triggering the collision detection. Therefore, it is important to set the step size (which essentially represents a $dt$ for updating the joint angles $q = q + \dot{q} dt$) to small values, i.e. such that $\mathrm{max}\{ \dot{q} \} \; dt \; < \; \mathrm{smallest} \; \mathrm{obstacle}$. Comparing those two quantities requires either applying forward kinematics to the joint velocities to compute the end effector velocities or computing the obstacle dimensions in configuration space. In our algorithm we used forward kinematics to estimate the largest step size. In addition, we used the 
+step size to estimate the error threshold, which we set such that the arm could not ``jump over'' the target configuration. \newline
  The probability of moving towards the goal was selected to be very small, around $p = 0.01$, so in only one percent of the cases does the tree expand towards the goal. Depending on the complexity of the environment and the number of obstacles this resembled the following \textit{connect} RRT version. 
  
  \item \textbf{Connect:} This version of RRTs attempts to expand towards the goal for as many consecutive steps as possible (i.e. until a collision is detected). The behavior of this algorithm was very similar to the goal-directed version and the reason is the following. In an environment with many obstacles (as was the case in \textit{file2.scene}) a randomly sampled node is likely to be either in an obstacle or cause the arm to collide with an obstacle with high probability. On the other hand an expansion towards the goal, if possible, enables many more subsequent expansions towards the goal. Therefore, once a goal expansion was successful, subsequent goal expansions are very likely even though the goal probability is low. 
@@ -146,6 +147,82 @@ The following implementations were applied to a different environment with more 
 \problem{4}{Questions}
 \label{sec:problem_4}
 % ++++++++++++++++++++++++++++++++++++++++++++++++
+\problemPart{a}
+For collision checking, a function would be required that would allow possible expansion nodes to be rejected if there is a collision between the links and other objects in workspace. This would require knowing the current joint positions in workspace and using the Jacobian to detect what the next orientation will be given a change in joint velocity. If a collision is detected, that node should not be considered in the RRT; however, if there is not a collision the node can be added.
+
+For joint limits, there should be a constraint placed on the possible positions that each link can have with respect to each other. This is easiest done in configuration space vs. workspace. By taking taking the configuration space and choosing what are the maximum and minimum angles between limbs, it should be possible to create functions (either continuous or piecewise) that restrict the possible movements of certain joints given the current orientation of a specific one. this can then be applied into the RRT in configuration space directly using a similar method to the collision node rejection function.
+
+\problemPart{b}
+\begin{table}%[t!]
+\centering
+\label{table:results}
+\caption{Averaged results of three RRT variants: Goal-directed, connected, and bidirectional RRTs.}
+\begin{tabular*}{0.5\textwidth}{c|c|c}
+\hline
+\bfseries RRT-Variant & \bfseries \# of nodes & \bfseries Time [sec] \\
+\hline\hline
+% DATA
+% ########################################################
+Connect 	&  358.4 	& 131.25 	\\ \hline\hline
+Goal-directed 	&  388.5 	& 143.50 	\\ \hline\hline
+Bidirectional 	&  1341 	& 8.67 		\\ \hline\hline
+% ########################################################
+\hline
+\end{tabular*}
+\end{table}
+
+\begin{table}%[t!]
+\centering
+\label{table:results}
+\caption{Raw Results of three RRT variants: Goal-directed, connected, and bidirectional RRTs.}
+\begin{tabular*}{0.5\textwidth}{c|c|c}
+\hline
+\bfseries RRT-Variant & \bfseries \# of nodes & \bfseries Time [sec] \\
+\hline\hline
+% DATA
+% ########################################################
+Connect 	&  245 	& 96.89 	\\ \hline
+		&  458 	& 159.27 	\\ \hline
+		&  414 	& 136.17 	\\ \hline
+		&  368 	& 152.52 	\\ \hline
+		&  254 	& 91.02 	\\ \hline
+		&  379 	& 131.69 	\\ \hline
+		&  327 	& 113.23 	\\ \hline
+		&  409 	& 157.03 	\\ \hline
+		&  438 	& 161.76 	\\ \hline
+		&  292 	& 112.89 	\\ \hline\hline
+Goal-directed 	&  356 	& 133.67 	\\ \hline
+		&  423 	& 176.02 	\\ \hline
+		&  313 	& 119.23 	\\ \hline
+		&  361 	& 149.39 	\\ \hline
+		&  427 	& 175.37 	\\ \hline
+		&  398 	& 134.81 	\\ \hline
+		&  515 	& 216.71 	\\ \hline
+		&  329 	& 114.72 	\\ \hline
+		&  481 	& 135.45 	\\ \hline
+		&  282 	& 79.63 	\\ \hline\hline
+Bidirectional 	&  555 		& 3.41 	\\ \hline
+		&  1159 	& 7.26 	\\ \hline
+		&  1517 	& 9.79 	\\ \hline
+		&  794 		& 5.01 	\\ \hline
+		&  2998 	& 19.18 \\ \hline
+		&  527 		& 3.52 	\\ \hline
+		&  1489 	& 9.54 	\\ \hline
+		&  1241 	& 7.85 	\\ \hline
+		&  2239 	& 14.53 \\ \hline
+		&  891 		& 6.00 	\\ \hline
+% ########################################################
+\hline
+\end{tabular*}
+\end{table}
+
+In terms of computation time and node amount, the connected and directed tree were very similar. Both time were a lot slower than the bidirectional which is expected due to the extra logic used in determining which nodes to add to the graph. The bidirectional tree runs a lot faster than the goal-directed and connected trees because it does not use any biasing logic when it chooses the next node to add to the tree.
+The goal-directed tree would often get stuck hitting the obstacle in the lower right, compared to the connected algorithm which would mostly stay close to the large obstacle. Unfortunately, this resulted in the connected arm sometimes repeatedly hitting the large central obstacle due to the "move towards goal until collision" logic. 
+In the lower middle part of the path, the goal-directed would often times create a wider sweep than the connected version, in this region the connected region would usually take a much more direct path due to the lack of obstacles in that region.
+Compared to goal-directed and connected the bi-directional tree is more than double the number of nodes, which might be expected when joining two trees. Even though the two trees are most likely to meet up in the lower mid area of the environment, the rate at which they reach this point and their graph size and shape is less determined due to the lack of node choice biasing. This also affects the final path of the arm which is simply a joining of the path created between the random shared node on each tree. In this central area, there was a lot of jerky movements from the arm due to the jagged path that connected the shared node to the roots of both trees. All paths had instances of jerkiness in their paths which is common in RRT when path smoothing is not added to the algorithm but it was most often visible in the bidirectional tree.
+
+\problemPart{c}
+In the task constrained problem, the only limitation for the joints is that the cup is maintained in an upright position. Unfortunately, this constraint does not say anything more about how the links are positioned with respect to each other as long as this objective is maintained. It may that the final joint orientation is such that the cup's opening is blocked or that the cup is enclosed by the links, which would make access to it difficult or impossible. This can be fixed by using a joint limitation function similar to that in Part a). It may also be possible to create pseudo-objects in the environment (i.e  modify the robot's perception of the cup such that the opening is always given a berth of a specific distance or radius).
 
 \newpage
 \begin{center}
