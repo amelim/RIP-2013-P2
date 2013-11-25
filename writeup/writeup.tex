@@ -144,9 +144,9 @@ step size to estimate the error threshold, which we set such that the arm could 
 % ++++++++++++++++++++++++++++++++++++++++++++++++
 To approach the problem of adding constraints to the robot planner, we implemented a hard constraint for the arm motion along the y-axis in the workspace. This type of constraint is useful if the arm is manipulating objects which require specific orientations or motions.
 
-We implemented the First-Order retraction method which directly minimizes the constraint error of the sampled point. Each iteration, we compute the error of the end-effector in workspace from the sampled RRT point in joint space from forward kinematic equations. Next, we compute the jacobian locally around the current sampled joint configuration and then update the sampled point by a small motion towards a local minima. The minima that we converge to is dependent upon the configuration the jacobian is computed from since it's only vaild in a small, local region.
+We implemented the First-Order retraction method which directly minimizes the constraint error of the sampled point. Each iteration, we compute the error of the end-effector in workspace from the sampled RRT point in joint space from forward kinematic equations. Next, we compute the Jacobian locally around the current sampled joint configuration and then update the sampled point by a small motion towards a local minima. The minima that we converge to is dependent upon the configuration the Jacobian is computed from since it's only valid in a small, local region.
 
-In our experiments, we noticed that the inital configuration of the arm is not suitable for motion to the provided goal. During planning, we noticed that our implementation deviates from the starting point and even the constraint a bit to reconfigure the joint orientation. Once reconfigured, the end-effector then follows along the constrained path. This was quite surprising, yet makes intuitive sense. The planner noticed that it could not directly find a set of actions which satisfied the constraints, so it first modified it's configuration and then executed the plan. Note however, that the action is a bit noisy and imprecised. This could be solved with the use of a path smoother and some higher level logic to separate reconfiguration and action execution we believe.
+In our experiments, we noticed that the inital configuration of the arm is not suitable for motion to the provided goal. During planning, we noticed that our implementation deviates from the starting point and even the constraint a bit to reconfigure the joint orientation. Once reconfigured, the end-effector then follows along the constrained path. This was quite surprising, yet makes intuitive sense. The planner noticed that it could not directly find a set of actions which satisfied the constraints, so it first modified it's configuration and then executed the plan. Note however, that the action is a bit noisy and imprecise. This could be solved with the use of a path smoother and some higher level logic to separate reconfiguration and action execution we believe.
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++
 \problem{4}{Questions}
@@ -155,7 +155,7 @@ In our experiments, we noticed that the inital configuration of the arm is not s
 \problemPart{a}
 For collision checking, a function would be required that would allow possible expansion nodes to be rejected if there is a collision between the links and other objects in workspace. This would require knowing the current joint positions in workspace and using the Jacobian to detect what the next orientation will be given a change in joint velocity. If a collision is detected, that node should not be considered in the RRT; however, if there is not a collision the node can be added.
 
-For joint limits, there should be a constraint placed on the possible positions that each link can have with respect to each other. This is easiest done in configuration space vs. workspace. By taking taking the configuration space and choosing what are the maximum and minimum angles between limbs, it should be possible to create functions (either continuous or piecewise) that restrict the possible movements of certain joints given the current orientation of a specific one. this can then be applied into the RRT in configuration space directly using a similar method to the collision node rejection function.
+For joint limits, there should be a constraint placed on the possible positions that each link can have with respect to each other. This is easiest done in configuration space vs. workspace. By taking the configuration space and choosing what are the maximum and minimum angles between links, it should be possible to create functions (either continuous or piecewise) that restrict the possible movements of certain joints given the current orientation of a specific one. This can then be applied into the RRT in configuration space directly using a similar method to the collision node rejection function.
 
 \problemPart{b}
 \begin{table}%[t!]
@@ -221,15 +221,15 @@ Bidirectional 	&  555 		& 3.41 	\\ \hline
 \end{tabular*}
 \end{table}
 
-In terms of computation time and node amount, the connected and directed tree were very similar. Both time were a lot slower than the bidirectional which is expected due to the extra logic used in determining which nodes to add to the graph. The bidirectional tree runs a lot faster than the goal-directed and connected trees because it does not use any biasing logic when it chooses the next node to add to the tree.
+In terms of computation of time and number of nodes, the trees resulting from the connected and directed RRT versions were very similar. Both times were a lot slower than the bidirectional which is expected due to the extra logic used in determining which nodes to add to the graph. The bidirectional tree runs a lot faster than the goal-directed and connected trees because it does not use any biasing logic when it chooses the next node to add to the tree.
 The goal-directed tree would often get stuck hitting the obstacle in the lower right, compared to the connected algorithm which would mostly stay close to the large obstacle. Unfortunately, this resulted in the connected arm sometimes repeatedly hitting the large central obstacle due to the "move towards goal until collision" logic. 
 In the lower middle part of the path, the goal-directed would often times create a wider sweep than the connected version, in this region the connected region would usually take a much more direct path due to the lack of obstacles in that region.
 Compared to goal-directed and connected the bi-directional tree is more than double the number of nodes, which might be expected when joining two trees. Even though the two trees are most likely to meet up in the lower mid area of the environment, the rate at which they reach this point and their graph size and shape is less determined due to the lack of node choice biasing. This also affects the final path of the arm which is simply a joining of the path created between the random shared node on each tree. In this central area, there was a lot of jerky movements from the arm due to the jagged path that connected the shared node to the roots of both trees. All paths had instances of jerkiness in their paths which is common in RRT when path smoothing is not added to the algorithm but it was most often visible in the bidirectional tree.
 
 \problemPart{c}
-In the task constrained problem, the only limitation for the joints is that the cup is maintained in an upright position. Unfortunately, this constraint does not say anything more about how the links are positioned with respect to each other as long as this objective is maintained. It may that the final joint orientation is such that the cup's opening is blocked or that the cup is enclosed by the links, which would make access to it difficult or impossible. This can be fixed by using a joint limitation function similar to that in Part a). It may also be possible to create pseudo-objects in the environment (i.e  modify the robot's perception of the cup such that the opening is always given a berth of a specific distance or radius).
+In the task constrained problem, the only limitation for the joints is that the cup is maintained in an upright position. Unfortunately, this constraint does not say anything more about how the links are positioned with respect to each other as long as this objective is maintained. It may be that the final joint orientation is such that the cup's opening is blocked or that the cup is enclosed by the links, which would make access to it difficult or impossible. This can be fixed by using a joint limitation function similar to that in Part a). It may also be possible to create pseudo-objects in the environment (i.e  modify the robot's perception of the cup such that the opening is always given a berth of a specific distance or radius).
 
-Additionally, it's very important to verify that the initial configuration of the arm will work for the entire motion. Having to reconfigure the orientation of joints and the end-effector midway through a motion while holding a cup would be extremely undesireable.
+Additionally, it's very important to verify that the initial configuration of the arm will work for the entire motion. Having to reconfigure the orientation of joints and the end-effector midway through a motion while holding a cup would be extremely undesirable.
 
 \newpage
 \begin{center}
@@ -240,26 +240,28 @@ This section summarizes the contribution of each team member.
 \begin{enumerate}
   \item Matheus Svolenski
     \begin{itemize}
-     \item ???
+     \item Helped evaluate algorithms for problem 4b.
     \end{itemize}
-
   \item Jarius Tillman
    \begin{itemize}
-     \item ???
+     \item Answered questions of problem 4.
+     \item Tested and evaluated algorithms for problem 4b.
+     \item Writeup for section 3 in the document.
     \end{itemize}
   \item Andrew Melim
     \begin{itemize}
-     \item Implemented task-constrained control for problem 3
-     \item Created videos and animtions for problem 3
-     \item Writeup for section 3 in the document
+     \item Implemented task-constrained control for problem 3.
+     \item Created videos and animations for problem 3.
+     \item Writeup for section 3 in the document.
     \end{itemize}
 
   \item Daniel Pickem
     \begin{itemize}
      \item Implemented Jacobian control approach using inverse and forward kinematics for problem 1.
      \item Implemented the four RRT versions required for problem 2.
-     \item Created all videos and animations for problem 1 and 2 as well as figures.
-     \item Modified and improved visualization code provided by instructor to suit our needs better. 
+     \item Created all videos and animations for problem 1 and 2.
+     \item Modified and improved visualization code provided by the instructor.
+     \item Writeup for section 1 and 2 in the document.
     \end{itemize}
 \end{enumerate}
 
@@ -268,15 +270,9 @@ This section summarizes the contribution of each team member.
 % ##########################################
 \begin{thebibliography}{50}
   %\bibitem[label]{key}.
-  \bibitem{Russell2010} Russell, Stuart J. and Norvig, Peter, \textsl{Artificial Intelligence: A Modern Approach}, Pearson Education, 2010
-  \bibitem{Blackbox} BlackBox Planner, \textsl{http://www.cs.rochester.edu/~kautz/satplan/blackbox/\#super}
-  \bibitem{FastForward} Fast Forward Planner, \textsl{http://fai.cs.uni-saarland.de/hoffmann/ff.html}
+  \bibitem{Stilman2007} Stilman, Mike, \textsl{Task constrained motion planning in robot joint space.}, Intelligent Robots and Systems, 2007. IROS 2007. IEEE/RSJ International Conference on. IEEE, 2007
+  \bibitem{Kunz2012} Kunz, Tobias, and Mike Stilman, \textsl{Manipulation planning with soft task constraints.}, Intelligent Robots and Systems (IROS), 2012 IEEE/RSJ International Conference on. IEEE, 2012
 \end{thebibliography}
-
-\newpage
-\begin{appendix}
-???
-\end{appendix}
 
 \newpage
 \end{document}
