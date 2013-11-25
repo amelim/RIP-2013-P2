@@ -142,6 +142,11 @@ step size to estimate the error threshold, which we set such that the arm could 
 \problem{3}{Task Constraints}
 \label{sec:problem_3}
 % ++++++++++++++++++++++++++++++++++++++++++++++++
+To approach the problem of adding constraints to the robot planner, we implemented a hard constraint for the arm motion along the y-axis in the workspace. This type of constraint is useful if the arm is manipulating objects which require specific orientations or motions.
+
+We implemented the First-Order retraction method which directly minimizes the constraint error of the sampled point. Each iteration, we compute the error of the end-effector in workspace from the sampled RRT point in joint space from forward kinematic equations. Next, we compute the jacobian locally around the current sampled joint configuration and then update the sampled point by a small motion towards a local minima. The minima that we converge to is dependent upon the configuration the jacobian is computed from since it's only vaild in a small, local region.
+
+In our experiments, we noticed that the inital configuration of the arm is not suitable for motion to the provided goal. During planning, we noticed that our implementation deviates from the starting point and even the constraint a bit to reconfigure the joint orientation. Once reconfigured, the end-effector then follows along the constrained path. This was quite surprising, yet makes intuitive sense. The planner noticed that it could not directly find a set of actions which satisfied the constraints, so it first modified it's configuration and then executed the plan. Note however, that the action is a bit noisy and imprecised. This could be solved with the use of a path smoother and some higher level logic to separate reconfiguration and action execution we believe.
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++
 \problem{4}{Questions}
@@ -223,6 +228,8 @@ Compared to goal-directed and connected the bi-directional tree is more than dou
 
 \problemPart{c}
 In the task constrained problem, the only limitation for the joints is that the cup is maintained in an upright position. Unfortunately, this constraint does not say anything more about how the links are positioned with respect to each other as long as this objective is maintained. It may that the final joint orientation is such that the cup's opening is blocked or that the cup is enclosed by the links, which would make access to it difficult or impossible. This can be fixed by using a joint limitation function similar to that in Part a). It may also be possible to create pseudo-objects in the environment (i.e  modify the robot's perception of the cup such that the opening is always given a berth of a specific distance or radius).
+
+Additionally, it's very important to verify that the initial configuration of the arm will work for the entire motion. Having to reconfigure the orientation of joints and the end-effector midway through a motion while holding a cup would be extremely undesireable.
 
 \newpage
 \begin{center}
