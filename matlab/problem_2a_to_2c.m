@@ -7,7 +7,7 @@ addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
 rrt_variant     = 'baseline'; 
-rrt_variant     = 'goal_directed';
+%rrt_variant     = 'goal_directed';
 % rrt_variant     = 'goal_connect';
 numberOfSamples = 300;
 stepSize        = 0.05;

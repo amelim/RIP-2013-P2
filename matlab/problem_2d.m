@@ -4,7 +4,7 @@ addpath('./visualization');
 
 % Set RRT parameters and select variant of RRT planner
 rrt_variant         = 'bidirectional'; 
-numberOfSamples     = 500;
+numberOfSamples     = 2000;
 stepSize            = 0.05;
 connectProbability  = 0.2;
 errorThreshold      = 0.1;

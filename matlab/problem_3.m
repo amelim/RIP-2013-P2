@@ -192,7 +192,7 @@ end
 if(strcmp(rrt_variant, 'baseline'))
     drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
 elseif(strcmp(rrt_variant, 'goal_directed') || strcmp(rrt_variant, 'goal_connect'))
-    drawScene(file, qSum', ql, '', fk(q_init, ql), fk(q_goal, ql));
+    drawScene(file, qSum', ql, 'test', fk(q_init, ql), fk(q_goal, ql));
 end
 
 %% Draw tree
